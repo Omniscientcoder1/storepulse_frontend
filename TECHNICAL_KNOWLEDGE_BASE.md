@@ -269,42 +269,9 @@ If a specific paying tenant needs something category-specific (e.g. a made-to-or
 
 ---
 
-## 6. Admin Panel Feature Specification
+## 6. Feature Specification
 
-Compiled from Shopify, WooCommerce, Magento, and BigCommerce feature sets, plus 2026 AI-commerce trend research (unified inbox with AI-drafted replies, natural-language analytics, automated marketing).
-
-### 6.1 MVP (Phase 3–4 of project tracker)
-
-| Module | Features |
-|---|---|
-| **Dashboard/home** | Today's orders, revenue this month, low-stock alerts (if tracked), unread messages count |
-| **Orders** | List/filter by status; create manual/draft order; edit order; status pipeline (draft → pending_payment → confirmed → shipped → delivered → cancelled) |
-| **Products** | Create/edit product with configurable options (size, color, spec, flavor — via `options_schema`); image upload; optional stock quantity tracking; active/inactive toggle |
-| **Customers** | List, search by phone/name; order history per customer; manually-added notes |
-| **Payments** | Record payment (manual, COD, or SSLCommerz-verified); payment status per order |
-| **Storefront settings** | Business name, category/template selection, logo, theme color, WhatsApp number, custom domain setup |
-| **Staff/roles** | Owner + staff roles (basic — full permission matrix is Phase 2) |
-
-### 6.2 Phase 2 (post-MVP, once paying tenants exist)
-
-| Module | Features |
-|---|---|
-| **Unified inbox** | Chatwoot-embedded view; FB Messenger + WhatsApp in one thread list; "create order from chat" shortcut |
-| **AI reply suggestions** | Drafted reply shown to staff, never auto-sent (human-in-the-loop, per earlier security review) |
-| **Discounts** | Coupon codes, percentage/flat discounts, seasonal offers |
-| **Shipping** | Basic flat-rate/zone-based shipping rules; courier handoff notes |
-| **Reports** | Revenue over time, best-selling products, repeat-customer rate |
-| **Marketing** | Basic Facebook/Instagram post scheduling assist; AI-generated product descriptions |
-| **Notifications** | SMS/WhatsApp automated order-status updates to customers |
-
-### 6.3 Phase 3 (scale features, not before revenue justifies them)
-
-- AI SEO suggestions, AI brand-identity starter kit (paid add-on, not free-tier — generation cost per use)
-- Full permission matrix / audit log
-- Abandoned-cart/order-form recovery reminders
-- Category-specific optional modules (e.g. appointment booking, made-to-order scheduling) built only when a paying tenant's category needs it
-
-**Explicitly out of scope for all phases unless a real tenant need emerges:** multi-vendor marketplace, native mobile app (PWA covers this), loyalty points programs.
+Full feature lists for the storefront, the backend/admin dashboard, and the mother website — each tiered MVP → Phase 2 → Phase 3 — now live in `FEATURE_SPECIFICATION.md`. Check there before building anything; the data model and API spec below (§5, §7) are what MVP-tier features are built against.
 
 ---
 

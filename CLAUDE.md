@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+See @AGENTS.md for the cross-tool baseline (also read by Copilot and Gemini CLI) — the conventions below restate it with frontend-specific detail.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Current state
