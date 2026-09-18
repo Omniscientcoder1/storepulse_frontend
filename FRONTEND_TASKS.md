@@ -595,7 +595,7 @@ backend data, real ordering UI) rather than its "migrate" framing.
 
 ---
 
-### FE-11: Checkout flow + order confirmation
+### FE-11: Checkout flow + order confirmation ✅
 **Depends on:** FE-10, backend BE-08
 **Suggested agent:** Claude Code
 **Files:** `apps/storefront/app/checkout/`, `apps/storefront/app/order-confirmation/`
@@ -607,8 +607,60 @@ backend data, real ordering UI) rather than its "migrate" framing.
 - No tenant ID anywhere in this flow's client-side code or requests — it's the single hardcoded tenant from FE-10 for now, resolved however FE-10 established, not passed by the checkout form.
 
 **Definition of done:**
-- [ ] Submitting the form creates a real order visible in the admin orders list (FE-06)
-- [ ] Required fields are validated before submission, with clear error messages
+- [x] Submitting the form creates a real order visible in the admin orders list (FE-06)
+- [x] Required fields are validated before submission, with clear error messages
+
+**Notes (2026-09-18):** Backend already had the real endpoint —
+`POST /tenants/{tenant_id}/orders` (`StorefrontOrderCreate`, added in the
+"frontend-readiness patches" batch ahead of this task) — no backend changes
+needed.
+
+- `OrderPanel` (FE-10) now navigates to `/checkout?productId=&quantity=&options=`
+  on click instead of a dead-end button — selections travel via URL search
+  params rather than a new client-state library (nothing in `AGENTS.md`/FE-10
+  called for one, and the checkout page is a plain server component read).
+- `apps/storefront/app/checkout/page.tsx` re-loads the same
+  `loadStorefrontData()` FE-10 already established (no second data path),
+  shows an order summary, and renders `checkout-form.tsx` — a client
+  component whose Zod schema mirrors the backend's `StorefrontOrderCreate`
+  field constraints (name/phone/address required, `delivery_method` enum).
+- **Submission goes through a new BFF route**, `apps/storefront/app/api/checkout/route.ts`,
+  not a direct browser→backend call — even though the backend endpoint itself
+  is public/unauthenticated, this keeps `STOREFRONT_DEMO_TENANT_ID` resolution
+  server-side only (never sent to or read from the client), the same
+  tenant-resolution rule FE-10/FE-12 rely on, and keeps `packages/api-client`
+  as the only HTTP call site per FE-03. The route re-validates with its own
+  Zod schema (defense in depth — a client bypassing the form's own validation
+  still hits a real check) and translates `ApiError` the same way `apps/admin`'s
+  `withAdminApi()` does, without needing a session (there is none here).
+- `packages/api-client` gained `types/order.ts`'s `StorefrontOrderCreate` and
+  `resources/storefront.ts`'s `createOrder`, mirroring the backend schema
+  exactly (no `total_price`/`status` fields — the backend always computes
+  price and always starts `draft`).
+- `/order-confirmation` takes `orderId`/`total` from the redirect's query
+  string rather than re-fetching — there is no public single-order-read
+  endpoint (only the admin-authenticated one), and the values being displayed
+  are exactly what the customer just submitted, not sensitive data being
+  newly exposed.
+- Added `zod` as a direct dependency of `apps/storefront` (same version pin
+  as `apps/admin`) — this is the app's first form.
+- **Verified live**, Docker/Postgres up (the constraint every prior frontend
+  task deferred): seeded a real tenant + product + admin user directly via
+  the backend's models (`hash_password` + `AdminUser`/`Product`/`Tenant`,
+  same shapes `tests/conftest.py`'s factories use — mother-site signup does
+  not yet create an admin user, so this was necessary to log into the admin
+  dashboard at all), started the real backend + both Next.js dev servers,
+  and confirmed: (1) the storefront renders the real seeded product, no demo
+  fallback; (2) `POST /api/checkout` with valid details creates a real order
+  (`total_price` correctly server-computed as `base_price * quantity`); (3)
+  that exact order (id, $6,900 total) appears in the admin orders list after
+  logging in as the seeded admin — the FE-06 round-trip this task's DoD
+  requires; (4) a missing required field (blank delivery address) returns a
+  422 with a clear message, not a silent failure; (5) an unknown/missing
+  `productId` on `/checkout` shows a clear "no longer available" state
+  instead of crashing; (6) `/order-confirmation` with no `orderId` shows a
+  clear empty state. Seed data was cleaned up (cascading tenant delete) and
+  all test servers stopped afterward.
 
 ---
 

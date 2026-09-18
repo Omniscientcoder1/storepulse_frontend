@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import type { ProductPublic } from "@storepulse/api-client";
 
 export function OrderPanel({ product }: { product: ProductPublic }) {
+  const router = useRouter();
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
 
@@ -85,13 +87,21 @@ export function OrderPanel({ product }: { product: ProductPublic }) {
         </div>
       </div>
 
-      {/* Checkout submission itself is FE-11 — this button is the entry point
-          that flow will replace once /checkout exists. */}
       <button
         type="button"
         disabled={missingRequired.length > 0}
         className="w-full rounded-lg px-4 py-3 text-sm font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
         style={{ background: "var(--storefront-primary)" }}
+        onClick={() => {
+          const params = new URLSearchParams({
+            productId: product.id,
+            quantity: String(quantity),
+          });
+          if (Object.keys(selections).length > 0) {
+            params.set("options", JSON.stringify(selections));
+          }
+          router.push(`/checkout?${params.toString()}`);
+        }}
       >
         Order now — Cash on Delivery
       </button>

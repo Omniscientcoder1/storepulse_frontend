@@ -13,8 +13,12 @@ import {
   updateProduct,
 } from "./resources/products";
 import { getSettings, updateSettings } from "./resources/settings";
-import { getStorefrontInfo, listPublicProducts } from "./resources/storefront";
-import type { OrderCreate, OrderStatus, OrderUpdate } from "./types/order";
+import {
+  createStorefrontOrder,
+  getStorefrontInfo,
+  listPublicProducts,
+} from "./resources/storefront";
+import type { OrderCreate, OrderStatus, OrderUpdate, StorefrontOrderCreate } from "./types/order";
 import type { ManualPaymentRequest } from "./types/payment";
 import type { ProductCreate, ProductUpdate } from "./types/product";
 import type { TenantSettingsUpdate } from "./types/settings";
@@ -35,6 +39,7 @@ export type {
   OrderRead,
   OrderStatus,
   OrderUpdate,
+  StorefrontOrderCreate,
 } from "./types/order";
 export type { Page } from "./types/pagination";
 export type {
@@ -123,5 +128,7 @@ export class StorePulseApiClient {
     listProducts: (tenantId: string, params?: { limit?: number; offset?: number }) =>
       listPublicProducts(this.client, tenantId, params),
     getInfo: (tenantId: string) => getStorefrontInfo(this.client, tenantId),
+    createOrder: (tenantId: string, body: StorefrontOrderCreate) =>
+      createStorefrontOrder(this.client, tenantId, body),
   };
 }

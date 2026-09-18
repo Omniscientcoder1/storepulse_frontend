@@ -44,6 +44,26 @@ export interface OrderCreate {
   status?: "draft" | "pending_payment";
 }
 
+/**
+ * Mirrors `StorefrontOrderCreate` in `app/schemas/order.py` — the public
+ * checkout shape. No `total_price`/`status` fields exist here at all (unlike
+ * `OrderCreate`): the backend always server-computes the price and always
+ * starts the order as `draft`, so there is nothing for an anonymous caller
+ * to tamper with.
+ */
+export interface StorefrontOrderCreate {
+  customer_phone: string;
+  customer_name?: string | null;
+  customer_address?: string | null;
+  product_id: string;
+  quantity?: number;
+  selected_options?: Record<string, unknown>;
+  delivery_address?: string | null;
+  delivery_method?: DeliveryMethod;
+  deposit_amount?: string;
+  special_instructions?: string | null;
+}
+
 export interface OrderUpdate {
   status?: OrderStatus;
   quantity?: number;

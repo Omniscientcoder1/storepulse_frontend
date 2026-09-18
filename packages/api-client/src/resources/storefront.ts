@@ -1,4 +1,5 @@
 import type { ApiClient } from "../client";
+import type { OrderRead, StorefrontOrderCreate } from "../types/order";
 import type { Page } from "../types/pagination";
 import type { ProductPublic } from "../types/product";
 import type { TenantStorefrontInfo } from "../types/storefront";
@@ -19,4 +20,20 @@ export function getStorefrontInfo(
   tenantId: string,
 ): Promise<TenantStorefrontInfo> {
   return client.request<TenantStorefrontInfo>(`/tenants/${tenantId}/storefront-info`);
+}
+
+/**
+ * Public checkout — mirrors `POST /tenants/{tenant_id}/orders` in
+ * `app/routers/orders.py`. Unauthenticated by design (anonymous storefront
+ * visitors); the backend rate-limits it per `(tenant_id, client_ip)`.
+ */
+export function createStorefrontOrder(
+  client: ApiClient,
+  tenantId: string,
+  body: StorefrontOrderCreate,
+): Promise<OrderRead> {
+  return client.request<OrderRead>(`/tenants/${tenantId}/orders`, {
+    method: "POST",
+    json: body,
+  });
 }
