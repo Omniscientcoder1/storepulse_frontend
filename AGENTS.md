@@ -19,9 +19,10 @@ Turborepo monorepo: `apps/mother`, `apps/admin`, `apps/storefront`, plus shared 
 
 ## Before you start a task
 
-1. Read the relevant app's own code first (`apps/<app>`), not the whole monorepo.
-2. Check `packages/api-client` for whether the endpoint you need already has a typed client method.
-3. For anything touching tenant resolution or auth, read `TECHNICAL_KNOWLEDGE_BASE.md` §4 before writing code — this is the one area where getting it wrong is a real security bug, not a style nit.
+1. Check `FRONTEND_TASKS.md` for the current task queue — task ID, dependencies, constraints, and definition of done are all specified there. Several tasks also depend on backend tasks in `storepulse-backend/BACKEND_TASKS.md` — don't build against a backend endpoint that isn't deployed and working yet.
+2. Read the relevant app's own code first (`apps/<app>`), not the whole monorepo.
+3. Check `packages/api-client` for whether the endpoint you need already has a typed client method.
+4. For anything touching tenant resolution or auth, read `TECHNICAL_KNOWLEDGE_BASE.md` §4 before writing code — this is the one area where getting it wrong is a real security bug, not a style nit.
 
 ## Definition of done
 

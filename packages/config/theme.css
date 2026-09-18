@@ -1,0 +1,22 @@
+/*
+ * Shared Tailwind v4 theme tokens (admin + mother only — storefront themes
+ * are per-tenant, driven by `tenant.theme_config` at render time by
+ * packages/themes/*, not this shared file).
+ *
+ * Each app's app/globals.css imports this after `@import "tailwindcss";`:
+ *
+ *   @import "tailwindcss";
+ *   @import "@storepulse/config/theme.css";
+ *
+ * `@theme` generates real utility classes (bg-brand-500, text-brand-600, ...)
+ * from these CSS custom properties — see AGENTS.md: "apps extend it, don't
+ * fork it."
+ */
+@theme {
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-900: #1e3a8a;
+}

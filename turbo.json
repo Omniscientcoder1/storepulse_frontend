@@ -1,0 +1,32 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "stream",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "typecheck": {
+      // A Next.js app's own `tsc --noEmit` needs `.next/types` (ambient
+      // route/layout prop types), which only exists after that app's own
+      // `next build`/`next dev` has run at least once — `^build` alone
+      // (dependencies' builds) doesn't cover this. Own-build first, then
+      // dependencies' builds so cross-package types are also fresh.
+      "dependsOn": ["build", "^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "codegen": {
+      "cache": false
+    }
+  }
+}

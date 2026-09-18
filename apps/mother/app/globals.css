@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@import "@storepulse/ui/globals.css";
+
+/*
+ * Tailwind v4 auto-detects source files relative to this CSS file's own
+ * directory and does not walk into sibling workspace packages under
+ * node_modules. packages/ui ships raw .tsx (no build step), so its class
+ * usage has to be added to the scan explicitly.
+ */
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
