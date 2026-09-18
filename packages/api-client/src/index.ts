@@ -3,6 +3,7 @@ import { login, logout, me } from "./resources/auth";
 import { getCustomer, listCustomers } from "./resources/customers";
 import { getDashboardSummary } from "./resources/dashboard";
 import { getHealth } from "./resources/health";
+import { lookupTenantByHost } from "./resources/internal";
 import { createOrder, getOrder, listOrders, updateOrder } from "./resources/orders";
 import { listOrderPayments, recordManualPayment } from "./resources/payments";
 import {
@@ -30,6 +31,7 @@ export type { AdminUserRead, LoginRequest, MeResponse, TokenResponse } from "./t
 export type { CustomerDetail, CustomerOrderSummary, CustomerRead } from "./types/customer";
 export type { DashboardSummary, LowStockProduct } from "./types/dashboard";
 export type { HealthResponse } from "./types/health";
+export type { TenantLookupResponse } from "./types/internal";
 export {
   ALLOWED_ORDER_TRANSITIONS,
 } from "./types/order";
@@ -130,5 +132,10 @@ export class StorePulseApiClient {
     getInfo: (tenantId: string) => getStorefrontInfo(this.client, tenantId),
     createOrder: (tenantId: string, body: StorefrontOrderCreate) =>
       createStorefrontOrder(this.client, tenantId, body),
+  };
+
+  readonly internal = {
+    tenantLookup: (host: string, internalSecret: string | undefined) =>
+      lookupTenantByHost(this.client, host, internalSecret),
   };
 }

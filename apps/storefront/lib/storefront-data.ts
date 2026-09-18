@@ -4,7 +4,7 @@ import { ApiError, type ProductPublic, type TenantStorefrontInfo } from "@storep
 
 import { apiClient } from "./api";
 import { DEMO_PRODUCT, DEMO_STOREFRONT_INFO } from "./demo-content";
-import { getDemoTenantId } from "./tenant";
+import { getDemoTenantId, getResolvedTenantId } from "./tenant";
 
 export interface StorefrontData {
   info: TenantStorefrontInfo;
@@ -14,14 +14,18 @@ export interface StorefrontData {
 }
 
 /**
- * Loads the hardcoded tenant's storefront-info and first active product from
- * the real backend. Falls back to static demo content when no tenant id is
- * configured or the backend call fails, so the page always renders something
- * — this fallback path is what `data/content.ts` was in the original
- * template, not the primary way this page gets data.
+ * Loads the current request's tenant's storefront-info and first active
+ * product from the real backend. The tenant id comes from `middleware.ts`'s
+ * `Host`-header resolution (FE-12) — `getDemoTenantId()`'s env-var fallback
+ * only applies when middleware didn't run for this request at all (local
+ * component work; see its own docstring). Falls back to static demo content
+ * when no tenant id is available at all or the backend call fails, so the
+ * page always renders something — this fallback path is what
+ * `data/content.ts` was in the original template, not the primary way this
+ * page gets data.
  */
 export async function loadStorefrontData(): Promise<StorefrontData> {
-  const tenantId = getDemoTenantId();
+  const tenantId = (await getResolvedTenantId()) ?? getDemoTenantId();
   if (!tenantId) {
     return { info: DEMO_STOREFRONT_INFO, product: DEMO_PRODUCT, isDemo: true };
   }

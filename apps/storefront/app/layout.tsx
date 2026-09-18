@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 import { loadStorefrontData } from "@/lib/storefront-data";
+import { getResolvedTenantId } from "@/lib/tenant";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -15,8 +16,27 @@ const inter = Inter({
   variable: "--font-body",
 });
 
+/**
+ * `middleware.ts`'s matcher excludes `/store-unavailable` and
+ * `/store-suspended` (rewriting to them would otherwise re-enter tenant
+ * resolution), so those two routes never receive the resolved-tenant header
+ * — the only case where that's true for a real request. Metadata/theming
+ * there must not fall back to demo tenant content (that would show an
+ * unrelated business's name on a generic "store unavailable" page); a
+ * genuinely tenant-less generic title is used instead.
+ */
+async function loadLayoutContext() {
+  const hasResolvedTenant = (await getResolvedTenantId()) !== null;
+  if (!hasResolvedTenant) return null;
+  return loadStorefrontData();
+}
+
 export async function generateMetadata(): Promise<Metadata> {
-  const { info } = await loadStorefrontData();
+  const context = await loadLayoutContext();
+  if (!context) {
+    return { title: "StorePulse", description: "Powered by StorePulse." };
+  }
+  const { info } = context;
   return {
     title: info.business_name,
     description: `Shop ${info.business_name} — powered by StorePulse.`,
@@ -24,10 +44,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const { info } = await loadStorefrontData();
+  const context = await loadLayoutContext();
   const primaryColor =
-    typeof info.theme_config.primary_color === "string"
-      ? info.theme_config.primary_color
+    typeof context?.info.theme_config.primary_color === "string"
+      ? context.info.theme_config.primary_color
       : "#2563eb";
 
   return (

@@ -666,7 +666,7 @@ needed.
 
 ## Phase 4 — Multi-Tenant Routing
 
-### FE-12: Wildcard middleware + tenant resolution
+### FE-12: Wildcard middleware + tenant resolution ✅
 **Depends on:** FE-10, backend BE-05 (`/internal/tenant-lookup`)
 **Suggested agent:** Claude Code — this is the frontend half of the most security-sensitive mechanism in the system, don't delegate it casually
 **Files:** `apps/storefront/middleware.ts`
@@ -678,8 +678,78 @@ needed.
 - Cache the tenant lookup (even a simple in-memory/edge cache) so every single page request doesn't hit the backend fresh — but make sure the cache respects `is_active` going false reasonably quickly (don't cache "active" status for hours).
 
 **Definition of done:**
-- [ ] Two different subdomains pointed at local dev resolve to two different tenants' data and themes correctly
-- [ ] An inactive tenant's subdomain shows an appropriate "store unavailable" page, not a broken render or someone else's data
+- [x] Two different subdomains pointed at local dev resolve to two different tenants' data and themes correctly
+- [x] An inactive tenant's subdomain shows an appropriate "store unavailable" page, not a broken render or someone else's data
+
+**Notes (2026-09-18):** Kept the `middleware.ts` file name/convention rather
+than migrating to Next 16's renamed `proxy.ts` — same reasoning FE-04 already
+recorded for `apps/admin`: functionally identical, deprecated but not
+removed, and the task explicitly names `middleware.ts`.
+
+- `packages/api-client` gained an `internal` resource group
+  (`internal.tenantLookup`) mirroring `GET /internal/tenant-lookup` exactly,
+  including the `X-Internal-Secret` header — this keeps the non-negotiable
+  "only place frontend code makes HTTP calls" rule intact even for a
+  server-to-server call made from middleware, not a page.
+- **`x-storepulse-tenant-id`/`-category`/`-theme` are set once, only in
+  `middleware.ts`, via `NextResponse.next({ request: { headers } })`** —
+  `new Headers(request.headers)` starts from the *incoming* request, so any
+  client-supplied value of these header names is unconditionally overwritten
+  before the request reaches a page; there is no code path that merges a
+  client value in. `lib/tenant.ts`'s new `getResolvedTenantId()` is the only
+  reader, via `next/headers`'s `headers()`.
+- **Two-layer freshness, not just the cache TTL:** `lib/tenant-cache.ts`
+  caches the middleware's own lookup for 30s (module-level `Map`, per
+  server instance — acceptable per-instance staleness bound, true
+  cross-instance consistency is BE-28/Redis's job later). Independently,
+  `loadStorefrontData()` (FE-10) calls the *live, uncached* backend for the
+  actual product/business data on every request — so even during the 30s
+  window where middleware still lets a since-suspended tenant's request
+  through, the page-level fetch already 403s against the real backend and
+  falls back to demo content (verified live, see below). No real tenant data
+  is ever shown past the moment the backend itself reports suspension; the
+  cache only bounds how long the *rewrite-to-`/store-suspended`* behavior
+  lags, not how long stale data can leak.
+- 403 (suspended) and 404/network-failure (unknown host or backend down) both
+  rewrite (not redirect — the URL bar stays on the visited host) to two
+  separate pages, `/store-suspended` and `/store-unavailable`, kept as
+  distinct files for debugging but with deliberately near-identical generic
+  copy — a visitor should not be able to tell "suspended" apart from "never
+  existed," and neither page's copy or metadata names any real tenant.
+- **Found and fixed a real data-shape bug while verifying live:** the root
+  `layout.tsx` (FE-10) called `loadStorefrontData()` unconditionally for its
+  `<title>`/theme, which — on the two fallback routes specifically, since
+  `middleware.ts`'s matcher excludes them to avoid re-entering tenant
+  resolution — fell through to the *demo* tenant's name ("Rupon Electronics")
+  in the page `<title>`. Fixed by having the layout check
+  `getResolvedTenantId()` first and use a generic "StorePulse" title/metadata
+  when it's null, rather than ever substituting a demo (or any other)
+  business's name on a page that isn't that business's storefront.
+- Both apps' own `.gitignore` (`apps/{admin,mother,storefront}/.gitignore`,
+  `create-next-app`'s stock `.env*` line) were silently excluding
+  `.env.example` from git entirely — no app's example file had ever actually
+  been committed, despite `AGENTS.md`/`CLAUDE.md` treating it as the
+  documented-secrets checklist (the backend's own `.env.example` **is**
+  committed). Added `!.env.example` to all three so this task's new
+  `INTERNAL_API_SECRET` documentation (and the pre-existing
+  `NEXT_PUBLIC_API_URL`/`STOREFRONT_DEMO_TENANT_ID` entries) actually reach
+  git.
+- **Verified live** against a real backend + real Postgres: seeded two active
+  tenants (electronics, fashion — distinct `theme_config.primary_color` and
+  category) plus one suspended tenant, then hit the running storefront dev
+  server with `curl -H "Host: <subdomain>.storepulse.com"` for each (no real
+  wildcard DNS needed locally — the `Host` header is all either the
+  middleware or a real reverse proxy ever consults). Confirmed: (1) the two
+  active subdomains render their own product name and `--storefront-primary`
+  color, never each other's; (2) the suspended subdomain renders
+  `/store-suspended`'s generic copy with no tenant name anywhere in the
+  response, including metadata, after the fix above; (3) an unrecognized host
+  renders `/store-unavailable`; (4) flipping the electronics tenant's
+  `is_active` to `false` directly in Postgres (no cache invalidation call) was
+  reflected — request-visible as the store-suspended page — within ~23
+  seconds, inside the 30s cache design bound, and no real tenant data leaked
+  during that window per the two-layer note above. Seed tenants were deleted
+  and all test servers (backend + storefront dev server) stopped afterward.
 
 ---
 
