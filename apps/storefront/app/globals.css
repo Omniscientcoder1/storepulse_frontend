@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/*
+ * Tailwind v4's content scanner doesn't walk into sibling workspace packages
+ * under node_modules on its own (see packages/ui's own FE-02 note) — each
+ * theme package's className strings need an explicit @source so their
+ * utility classes actually get generated. Add one per new theme package.
+ */
+@source "../../../packages/themes/electronics/src/**/*.{ts,tsx}";
+@source "../../../packages/themes/fashion/src/**/*.{ts,tsx}";
+
 @theme {
   --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-body), ui-sans-serif, system-ui, sans-serif;

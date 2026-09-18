@@ -755,13 +755,104 @@ removed, and the task explicitly names `middleware.ts`.
 
 ### FE-13: Migrate remaining 4 templates into theme packages
 **Depends on:** FE-12
-**Suggested agent:** Claude Code (can be split into 4 separate Copilot sessions, one per template, once the pattern from the first is established)
+**Suggested agent:** Claude Code (split into 4 sub-tasks below, one per template, once the pattern from the first is established)
 **Files:** `packages/themes/fashion/`, `packages/themes/beauty/`, `packages/themes/home-kitchen/`, `packages/themes/food/`
 
 **Description:** Restructure the remaining 4 existing templates (Fashion, Beauty, Home & Kitchen, Food) the same way FE-10 restructured Electronics — as theme packages the storefront app selects by `tenant.category`, data-driven instead of hardcoded.
 
 **Definition of done:**
 - [ ] All 5 categories work end-to-end: create a tenant with that category in the admin, and its storefront renders with the correct theme and real data
+
+**Notes (2026-09-18):** No `packages/themes/` directory or theme-package
+pattern actually existed before this — FE-10 built Electronics directly
+inside `apps/storefront` (its own `components/`, no package boundary), so
+there was nothing to literally copy for the first new theme. Before FE-13a,
+retroactively extracted Electronics into `packages/themes/electronics/` and
+built the actual pattern all 5 categories now follow, confirmed with the
+user before proceeding (an unplanned but necessary prerequisite, not scope
+creep — FE-13's own file list and DoD assume this package layout exists):
+
+- Every theme package exports one `HomePage(props: StorefrontHomeProps)`
+  (`{ info, product, isDemo }`, typed from `@storepulse/api-client`) as its
+  sole entry point — `apps/storefront/lib/theme-registry.ts` is the *only*
+  place that maps `tenant.category` to a package, and `app/page.tsx` calls
+  the resolved `HomePage` directly as a function (not `<Theme .../>` — the
+  React Compiler's `react-hooks/static-components` lint rule flags a
+  registry-resolved capitalized variable rendered as JSX as "a component
+  created during render"; calling it as a plain function sidesteps a false
+  positive without disabling the rule).
+- `other` and any category without a package yet fall back to Electronics's
+  theme — a reasonable generic default until FE-13b/c/d land, rather than a
+  broken or blank storefront for those categories.
+- Each theme package needs `next`, `react`, `react-dom` as peer deps (not just
+  `@storepulse/api-client`) — its components use `next/navigation`'s
+  `useRouter` (for the order-panel's navigation into `/checkout`) even though
+  the package itself isn't a Next app. Its own `eslint.config.mjs` also needs
+  `eslint-config-next` wired in (mirroring the consuming app's config exactly)
+  so `@next/next/no-img-element` disable-comments resolve instead of erroring
+  as "unknown rule" when the package is linted standalone.
+- Added `packages/themes/*` to `pnpm-workspace.yaml`'s glob — the existing
+  `packages/*` only picks up direct children, not the nested
+  `packages/themes/<category>` layout the task file's own file list specifies.
+- Each theme package needs its own `@source` line in
+  `apps/storefront/app/globals.css` (Tailwind v4's content scanner doesn't
+  walk into sibling workspace packages on its own — the exact issue FE-02
+  already found and fixed for `packages/ui`) and its own entry in
+  `next.config.ts`'s `transpilePackages` (ships raw `.tsx`, no build step).
+- **Verified via `pnpm typecheck && pnpm lint && pnpm build` for the whole
+  workspace (all pass) only** — Docker/Postgres was not available this
+  session, so this task's actual Definition of Done (create a tenant with
+  each category in the admin, confirm its storefront renders that category's
+  theme with real data) was **not exercised live**, unlike FE-11/FE-12. This
+  should be run before treating FE-13a as fully verified: seed one
+  `electronics` and one `fashion` tenant, hit each subdomain, and confirm the
+  correct package renders with the tenant's real product/theme color.
+
+---
+
+### FE-13a: Fashion theme package ✅ (pending live verification — see FE-13 notes above)
+**Depends on:** FE-13's Electronics extraction (above)
+**Files:** `packages/themes/fashion/`
+
+**Description:** Fashion's own visual identity — a light, editorial/lookbook
+treatment deliberately opposite Electronics' dark theme (`bg-white text-black`
+set on the theme's own root, not the shared `globals.css`, since light/dark is
+a per-theme choice): a tall portrait hero instead of a square product shot,
+serif-adjacent display type at wider tracking, sharp corners instead of
+rounded. The underlying order logic (generic `options_schema`-driven inputs,
+quantity stepper, navigation into `/checkout`) is unchanged from Electronics —
+only `packages/themes/fashion/src/{product-hero,storefront-header,order-panel}.tsx`'s
+markup/classes differ; no business logic was duplicated with a twist.
+
+**Definition of done:**
+- [ ] A `fashion`-category tenant's storefront renders this theme with real backend data (see FE-13's note — pending Docker/Postgres)
+
+---
+
+### FE-13b: Beauty theme package
+**Depends on:** FE-13a (establishes the pattern)
+**Files:** `packages/themes/beauty/`
+
+**Definition of done:**
+- [ ] A `beauty`-category tenant's storefront renders this theme with real backend data
+
+---
+
+### FE-13c: Home & Kitchen theme package
+**Depends on:** FE-13a
+**Files:** `packages/themes/home-kitchen/`
+
+**Definition of done:**
+- [ ] A `home_kitchen`-category tenant's storefront renders this theme with real backend data
+
+---
+
+### FE-13d: Food theme package
+**Depends on:** FE-13a
+**Files:** `packages/themes/food/`
+
+**Definition of done:**
+- [ ] A `food`-category tenant's storefront renders this theme with real backend data
 
 ---
 

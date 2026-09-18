@@ -124,6 +124,12 @@ importers:
       '@storepulse/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@storepulse/theme-electronics':
+        specifier: workspace:*
+        version: link:../../packages/themes/electronics
+      '@storepulse/theme-fashion':
+        specifier: workspace:*
+        version: link:../../packages/themes/fashion
       next:
         specifier: 16.3.5
         version: 16.3.5(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -197,6 +203,74 @@ importers:
       typescript-eslint:
         specifier: ^8.70.0
         version: 8.70.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
+
+  packages/themes/electronics:
+    dependencies:
+      '@storepulse/api-client':
+        specifier: workspace:*
+        version: link:../../api-client
+    devDependencies:
+      '@storepulse/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/react':
+        specifier: ^19
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.3.0(@types/react@19.3.0)
+      eslint:
+        specifier: ^9
+        version: 9.39.5(jiti@2.7.0)
+      eslint-config-next:
+        specifier: 16.3.5
+        version: 16.3.5(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
+      next:
+        specifier: 16.3.5
+        version: 16.3.5(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      react:
+        specifier: ^19
+        version: 19.2.8
+      react-dom:
+        specifier: ^19
+        version: 19.2.8(react@19.2.8)
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
+  packages/themes/fashion:
+    dependencies:
+      '@storepulse/api-client':
+        specifier: workspace:*
+        version: link:../../api-client
+    devDependencies:
+      '@storepulse/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/react':
+        specifier: ^19
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.3.0(@types/react@19.3.0)
+      eslint:
+        specifier: ^9
+        version: 9.39.5(jiti@2.7.0)
+      eslint-config-next:
+        specifier: 16.3.5
+        version: 16.3.5(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
+      next:
+        specifier: 16.3.5
+        version: 16.3.5(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      react:
+        specifier: ^19
+        version: 19.2.8
+      react-dom:
+        specifier: ^19
+        version: 19.2.8(react@19.2.8)
+      typescript:
+        specifier: ^5
+        version: 5.9.3
 
   packages/ui:
     dependencies:
