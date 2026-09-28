@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same PR/branch so pushes don't queue up stale checks.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # One job per app, matrixed with fail-fast disabled — a broken `admin`
+  # build must not stop `mother`/`storefront`'s jobs from running or
+  # reporting, and each shows as its own separate check on the PR (FE-18's
+  # DoD: a PR that breaks one app's build fails CI without touching the
+  # other two). `--filter=<app>...` scopes lint/typecheck/build to that app
+  # plus its actual workspace dependencies (packages/ui, api-client,
+  # packages/themes/*, config) — not the whole monorepo — so a failure is
+  # attributable to the app whose job went red.
+  check:
+    name: check (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [admin, mother, storefront]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm exec turbo run lint --filter=${{ matrix.app }}...
+
+      - name: Typecheck
+        run: pnpm exec turbo run typecheck --filter=${{ matrix.app }}...
+
+      - name: Build
+        run: pnpm exec turbo run build --filter=${{ matrix.app }}...

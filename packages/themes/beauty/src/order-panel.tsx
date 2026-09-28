@@ -1,0 +1,118 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+
+import type { ProductPublic } from "@storepulse/api-client";
+
+export function OrderPanel({ product }: { product: ProductPublic }) {
+  const router = useRouter();
+  const [selections, setSelections] = useState<Record<string, string>>({});
+  const [quantity, setQuantity] = useState(1);
+
+  const missingRequired = useMemo(
+    () =>
+      product.options_schema
+        .filter((option) => option.required && option.type === "select")
+        .filter((option) => !selections[option.name]),
+    [product.options_schema, selections],
+  );
+
+  return (
+    <section className="flex flex-col gap-6 rounded-3xl bg-[var(--storefront-primary)]/5 p-6 md:p-8">
+      <h2 className="font-display text-lg font-medium">Choose your options</h2>
+
+      {product.options_schema.map((option) => (
+        <div key={option.name} className="flex flex-col gap-2">
+          <label
+            className="text-sm font-medium text-black/70"
+            htmlFor={`option-${option.name}`}
+          >
+            {option.name}
+            {option.required ? <span className="text-black/40"> (required)</span> : null}
+          </label>
+          {option.type === "select" ? (
+            <select
+              id={`option-${option.name}`}
+              className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm outline-none focus-visible:border-[var(--storefront-primary)]"
+              value={selections[option.name] ?? ""}
+              onChange={(event) =>
+                setSelections((prev) => ({ ...prev, [option.name]: event.target.value }))
+              }
+            >
+              <option value="" disabled>
+                Choose {option.name.toLowerCase()}
+              </option>
+              {option.choices.map((choice) => (
+                <option key={choice} value={choice}>
+                  {choice}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              id={`option-${option.name}`}
+              type={option.type === "number" ? "number" : "text"}
+              className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm outline-none focus-visible:border-[var(--storefront-primary)]"
+              value={selections[option.name] ?? ""}
+              onChange={(event) =>
+                setSelections((prev) => ({ ...prev, [option.name]: event.target.value }))
+              }
+            />
+          )}
+        </div>
+      ))}
+
+      <div className="flex flex-col gap-2">
+        <label className="text-sm font-medium text-black/70" htmlFor="quantity">
+          Quantity
+        </label>
+        <div className="flex w-fit items-center gap-3 rounded-full border border-black/10 bg-white">
+          <button
+            type="button"
+            className="px-4 py-2 text-lg leading-none text-black/60 hover:text-black"
+            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+            aria-label="Decrease quantity"
+          >
+            −
+          </button>
+          <span id="quantity" className="w-6 text-center text-sm tabular-nums">
+            {quantity}
+          </span>
+          <button
+            type="button"
+            className="px-4 py-2 text-lg leading-none text-black/60 hover:text-black"
+            onClick={() => setQuantity((q) => q + 1)}
+            aria-label="Increase quantity"
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        disabled={missingRequired.length > 0}
+        className="w-full rounded-full px-4 py-3 text-sm font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+        style={{ background: "var(--storefront-primary)" }}
+        onClick={() => {
+          const params = new URLSearchParams({
+            productId: product.id,
+            quantity: String(quantity),
+          });
+          if (Object.keys(selections).length > 0) {
+            params.set("options", JSON.stringify(selections));
+          }
+          router.push(`/checkout?${params.toString()}`);
+        }}
+      >
+        Order now — Cash on Delivery
+      </button>
+      {missingRequired.length > 0 ? (
+        <p className="text-center text-xs text-black/50">
+          Select {missingRequired.map((option) => option.name.toLowerCase()).join(", ")} to continue.
+        </p>
+      ) : null}
+    </section>
+  );
+}

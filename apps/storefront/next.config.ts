@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
     "@storepulse/api-client",
     "@storepulse/theme-electronics",
     "@storepulse/theme-fashion",
+    "@storepulse/theme-beauty",
+    "@storepulse/theme-home-kitchen",
+    "@storepulse/theme-food",
   ],
 };
 

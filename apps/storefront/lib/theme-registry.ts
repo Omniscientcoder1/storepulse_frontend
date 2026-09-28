@@ -3,9 +3,12 @@ import "server-only";
 import type { FC } from "react";
 
 import type { TenantCategory } from "@storepulse/api-client";
+import { HomePage as BeautyHomePage } from "@storepulse/theme-beauty";
 import { HomePage as ElectronicsHomePage } from "@storepulse/theme-electronics";
 import type { StorefrontHomeProps } from "@storepulse/theme-electronics";
 import { HomePage as FashionHomePage } from "@storepulse/theme-fashion";
+import { HomePage as FoodHomePage } from "@storepulse/theme-food";
+import { HomePage as HomeKitchenHomePage } from "@storepulse/theme-home-kitchen";
 
 /**
  * FE-13: one `packages/themes/<category>` package per storefront category,
@@ -14,9 +17,8 @@ import { HomePage as FashionHomePage } from "@storepulse/theme-fashion";
  * place that picks one by `tenant.category`, so `apps/storefront`'s own
  * routes hold no category-specific markup themselves.
  *
- * `other` and any category without a package yet fall back to Electronics —
- * a generic single-product layout is a reasonable default until every
- * category listed in `TenantCategory` has its own theme (FE-13b/c/d).
+ * `other` falls back to Electronics — a generic single-product layout is a
+ * reasonable default for the one category deliberately left themeless.
  *
  * Typed as `FC` (function component), not the broader `ComponentType`, so
  * `app/page.tsx` can call the resolved theme directly as a plain function —
@@ -26,6 +28,9 @@ import { HomePage as FashionHomePage } from "@storepulse/theme-fashion";
 const THEME_REGISTRY: Partial<Record<TenantCategory, FC<StorefrontHomeProps>>> = {
   electronics: ElectronicsHomePage,
   fashion: FashionHomePage,
+  beauty: BeautyHomePage,
+  home_kitchen: HomeKitchenHomePage,
+  food: FoodHomePage,
 };
 
 const DEFAULT_THEME = ElectronicsHomePage;

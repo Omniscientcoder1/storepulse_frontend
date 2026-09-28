@@ -8,6 +8,9 @@
  */
 @source "../../../packages/themes/electronics/src/**/*.{ts,tsx}";
 @source "../../../packages/themes/fashion/src/**/*.{ts,tsx}";
+@source "../../../packages/themes/beauty/src/**/*.{ts,tsx}";
+@source "../../../packages/themes/home-kitchen/src/**/*.{ts,tsx}";
+@source "../../../packages/themes/food/src/**/*.{ts,tsx}";
 
 @theme {
   --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
