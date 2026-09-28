@@ -11,9 +11,9 @@ accurate. Summary:
 
 | Status | Scope |
 |---|---|
-| ✅ **Done** | FE-01–FE-12 (monorepo scaffolding → `packages/ui`/`api-client` → admin auth/dashboard/orders/products/customers/settings → single-tenant Electronics storefront → checkout → wildcard multi-tenant routing), all of FE-13 (Fashion, Beauty, Home & Kitchen, and Food theme packages — FE-13a/b/c/d — every one live-verified), FE-14 (mother site homepage/gallery/pricing), and FE-18 (CI workflows) — see each task's own notes, 2026-09-28. Verified: admin has 8 real routes + 7 BFF API routes + middleware; storefront has checkout/order-confirmation/store-suspended/store-unavailable + middleware; `packages/api-client` has 8 typed resource groups (health, auth, dashboard, orders, payments, customers, products, settings, storefront, internal) matching the backend's actual MVP surface exactly, nothing extra, nothing missing; `packages/themes/{electronics,fashion,beauty,home-kitchen,food}` all have real `index.tsx`/`product-hero.tsx`/`storefront-header.tsx`/`order-panel.tsx`, not stubs — all 5 `TenantCategory` values now have a real theme (`other` intentionally falls back to Electronics); live-seeded tenants of every category confirmed the correct theme + real DB data render on their own subdomain, with suspended/unknown-host fallbacks behaving correctly; `.github/workflows/ci.yml` matrixes lint/typecheck/build across all three apps with real per-app isolation confirmed by deliberately breaking `admin`'s build locally and observing `mother`/`storefront` stay green; `apps/mother` now has a real designed homepage, `/templates`, `/pricing`, `/privacy`, `/terms`, all lint/typecheck/build clean and visually verified at desktop + mobile widths. |
-| ⛔ **Not started** | FE-15 (signup flow), FE-16 (admin inbox UI — no `inbox` route anywhere under `apps/admin/app/`, no `chat`/`conversation`/`faq` string anywhere in `apps/`), FE-17 (SSLCommerz checkout UI), FE-19 (Facebook Pixel/Conversions API — zero matches for `fbq`/`pixel`/conversion tracking in `apps/storefront`). |
-| 🔒 **Structurally blocked** | FE-16 needs backend BE-19 (admin inbox API) merged first — that's Phase 6 backend work, not started. FE-15 needs `POST /billing/subscribe` (backend BE-12, already ✅) — this one is frontend-only work now, not blocked. |
+| ✅ **Done** | FE-01–FE-12 (monorepo scaffolding → `packages/ui`/`api-client` → admin auth/dashboard/orders/products/customers/settings → single-tenant Electronics storefront → checkout → wildcard multi-tenant routing), all of FE-13 (Fashion, Beauty, Home & Kitchen, and Food theme packages — FE-13a/b/c/d — every one live-verified), FE-14 (mother site homepage/gallery/pricing), FE-15 (mother-site signup flow), and FE-18 (CI workflows) — see each task's own notes, 2026-09-28. Verified: admin has 8 real routes + 7 BFF API routes + middleware; storefront has checkout/order-confirmation/store-suspended/store-unavailable + middleware; `packages/api-client` has 9 typed resource groups (health, auth, billing, dashboard, orders, payments, customers, products, settings, storefront, internal) matching the backend's actual MVP surface exactly, nothing extra, nothing missing; `packages/themes/{electronics,fashion,beauty,home-kitchen,food}` all have real `index.tsx`/`product-hero.tsx`/`storefront-header.tsx`/`order-panel.tsx`, not stubs — all 5 `TenantCategory` values now have a real theme (`other` intentionally falls back to Electronics); live-seeded tenants of every category confirmed the correct theme + real DB data render on their own subdomain, with suspended/unknown-host fallbacks behaving correctly; `.github/workflows/ci.yml` matrixes lint/typecheck/build across all three apps with real per-app isolation confirmed by deliberately breaking `admin`'s build locally and observing `mother`/`storefront` stay green; `apps/mother` now has a real designed homepage, `/templates`, `/pricing`, `/privacy`, `/terms`, `/signup`, all lint/typecheck/build clean and visually verified at desktop + mobile widths. **FE-15 also recovered two entire backend router modules (`app/routers/settings.py`, `app/routers/tenants.py`) that existed only as orphaned compiled bytecode with no source — every tenant's storefront had been silently rendering demo content and `/admin/settings` was completely broken until this fix; see FE-15's notes.** |
+| ⛔ **Not started** | FE-16 (admin inbox UI — no `inbox` route anywhere under `apps/admin/app/`, no `chat`/`conversation`/`faq` string anywhere in `apps/`), FE-17 (SSLCommerz checkout UI), FE-19 (Facebook Pixel/Conversions API — zero matches for `fbq`/`pixel`/conversion tracking in `apps/storefront`). |
+| 🔒 **Structurally blocked** | FE-16 needs backend BE-19 (admin inbox API) merged first — that's Phase 6 backend work, not started. |
 
 **Bottom line:** everything buildable against the *current* backend MVP is
 done through Phase 4 (multi-tenant routing), all of Phase 4.5/FE-13's theme
@@ -49,8 +49,13 @@ dependency is merged.
    `turbo run {lint,typecheck,build} --filter=<app>...`; per-app isolation
    verified locally by deliberately breaking `admin`'s build and confirming
    `mother`/`storefront` stayed green (see FE-18's notes).
-6. **FE-14 — Mother site homepage + template gallery + pricing** (`depends on: FE-02, merged`): the "no theme packages to link to" blocker is now fully resolved — all 5 categories (electronics/fashion/beauty/home_kitchen/food) have a live theme package to link the gallery to.
-7. **FE-15 — Signup flow** (`depends on: FE-14`; backend BE-12 already merged): subdomain-availability check already exists server-side (`GET /tenants/check-subdomain`) — needs adding to `packages/api-client`, everything else is new frontend work.
+6. ~~**FE-14 — Mother site homepage + template gallery + pricing**~~ ✅ done
+   2026-09-28 — see FE-14's own notes.
+7. ~~**FE-15 — Signup flow**~~ ✅ done 2026-09-28 — the subdomain-availability
+   endpoint this line originally claimed "already exists server-side" did
+   not; added `GET /billing/check-subdomain` to the backend, plus recovered
+   two entire missing backend routers found broken during live verification
+   (see FE-15's own notes).
 8. **FE-17 — SSLCommerz checkout integration** (`depends on: FE-11, merged`; backend BE-09/BE-10a already merged) — purely frontend now, no backend blocker.
 9. **FE-16 — Admin inbox view** (`depends on: FE-04, merged`; **blocked on backend BE-14→BE-19** — do not start until the backend's Phase 6 inbox API is merged).
 10. **FE-19 — Facebook Pixel / Conversions API** (`depends on: FE-11, merged`) — no backend blocker, can slot in any time after FE-17.
@@ -1114,7 +1119,7 @@ covering both FE-13c and FE-13d together.
 
 ---
 
-### FE-15: Signup flow
+### FE-15: Signup flow ✅
 **Depends on:** FE-14, backend BE-17 (billing/subscribe)
 **Suggested agent:** Claude Code
 **Files:** `apps/mother/app/signup/`
@@ -1125,8 +1130,97 @@ covering both FE-13c and FE-13d together.
 - Subdomain availability check must query the real `tenants` table (via a backend endpoint — add one if it doesn't exist yet, e.g. `GET /tenants/check-subdomain?value=`), not a client-side guess.
 
 **Definition of done:**
-- [ ] Completing signup creates a working tenant that immediately appears correctly in FE-12's routing
-- [ ] Choosing an already-taken subdomain shows a clear error before submission, not after
+- [x] Completing signup creates a working tenant that immediately appears correctly in FE-12's routing
+- [x] Choosing an already-taken subdomain shows a clear error before submission, not after
+
+**Notes (2026-09-28):** Backend task ID correction: BE-17 is unrelated (inbox
+conversation lifecycle) — the real dependency is BE-12 (`POST /billing/subscribe`),
+already merged.
+
+- **This task's own claim that the subdomain-check endpoint "already exists
+  server-side" was false** — verified against the live backend before
+  building anything: no `tenants` router existed, `/billing/subscribe`'s own
+  409 was the only check, and it's a mutating call (can't be used for a
+  before-submit check). Added `GET /billing/check-subdomain` to
+  `storepulse_backend` (`app/routers/billing.py`, `app/schemas/subscription.py`,
+  `app/services/billing.py`) — a read-only check sharing its reserved-word
+  set and DB lookup with `create_tenant_with_subscription` via a new
+  `check_subdomain_availability()` helper, so the pre-submit check and the
+  final create can never disagree. 5 new backend tests
+  (`tests/test_billing.py`), all passing against real Postgres.
+- **Found and fixed a much larger pre-existing bug while live-verifying this
+  task's own DoD, unrelated to signup itself:** `app/routers/settings.py` and
+  `app/routers/tenants.py` (FE-09's `/admin/settings` and FE-10's
+  `GET /tenants/{tenant_id}/storefront-info`) existed only as orphaned
+  compiled `__pycache__` bytecode — the actual `.py` source was missing from
+  the repo and neither router was imported in `main.py`, despite FE-09/FE-10's
+  own task notes claiming both were built and live-verified. Practical effect:
+  **every tenant's storefront**, not just newly-signed-up ones, was silently
+  rendering demo fallback content (`loadStorefrontData()` catches the 404 and
+  falls back — see FE-10's notes), and the admin settings page was entirely
+  non-functional. Rebuilt both routers from the already-shipped frontend
+  contracts (`TenantSettingsRead`/`Update`, `TenantStorefrontInfo` in
+  `packages/api-client`) and existing conventions (`products.py`'s public-read
+  shape, `dashboard.py`'s `TenantAdmin`-scoped shape), registered them in
+  `app/main.py`, and added `tests/test_tenants.py` +
+  `tests/test_settings.py` (12 tests: happy path, tenant isolation via a
+  forged `X-Tenant-Id`, 404/403, subdomain-immutability, logo/theme-color
+  merge-not-clobber). Full suite: 209 passed (was 197 before this session;
+  +12 new, 0 regressed) — the only failures are 9 pre-existing environment-
+  config mismatches (`STOREFRONT_BASE_DOMAIN=localhost` locally vs.
+  `storepulse.com` hardcoded in `test_tenant_isolation.py`/
+  `test_phase12_hardening.py`), confirmed present on a clean `main` checkout
+  before any of this session's changes, unrelated to FE-15.
+- `packages/api-client` gained a `billing` resource group (`subscribe`,
+  `checkSubdomain`) and `types/billing.ts`, following FE-03's
+  resource/types/facade split; reused the existing `TenantCategory` from
+  `types/settings.ts` rather than redefining it.
+- `apps/mother` had never made a server-to-server call before this — added
+  `lib/api.ts`'s `publicApiClient()` (unauthenticated, mirrors
+  `apps/admin/lib/api.ts`'s `apiClientFor(token)`), `app/api/signup/route.ts`
+  and `app/api/signup/check-subdomain/route.ts` as BFF routes (mirrors
+  `apps/admin/app/api/auth/login/route.ts` — the closest existing template,
+  since signup is likewise unauthenticated), so the browser never calls the
+  FastAPI backend directly, same as every other form in this repo.
+- `app/signup/signup-wizard.tsx` — a plain-`useState` step machine (no wizard
+  library exists in the monorepo yet; consistent with the codebase's
+  no-form-library convention). Business name → category (same
+  value/label array + `z.enum` as `apps/admin`'s settings-form, using the
+  api-client `TenantCategory`, not `apps/mother/lib/categories.ts`'s
+  marketing slugs, which diverge — `home-kitchen` vs `home_kitchen`, and it
+  omits `other`) → subdomain (debounced live check against
+  `/api/signup/check-subdomain`, Continue disabled until `available: true` —
+  this is what satisfies "clear error before submission") → plan (reuses
+  `PRICING_TIERS` from `apps/mother/lib/pricing.ts`, pre-selected from the
+  existing `?plan=` query param FE-14's CTAs already send; `PricingCard` is
+  `<Link>`-based so not reusable as an in-wizard selectable control, built a
+  radio-style selection affordance instead) → review → submit.
+- **Signup provisions the tenant only — no admin login credentials.**
+  `POST /billing/subscribe` creates a `Tenant` + `Subscription`, nothing else
+  (confirmed in `app/routers/billing.py`'s own docstring: "admin-user /
+  credential provisioning is a separate concern"); there is no
+  credential-creation endpoint anywhere in the backend. The success panel
+  shows the new storefront URL and explicitly says admin access is a separate
+  follow-up, rather than implying a working login exists. **Flagging as
+  required follow-up work, not built here:** (1) a backend endpoint to create
+  the tenant's first `AdminUser` + password during/after signup, (2) abuse
+  protection on `POST /billing/subscribe` — it is public, unauthenticated,
+  and completely unthrottled (no CAPTCHA/rate-limit), confirmed absent from
+  both `BACKEND_TASKS.md` and the running code.
+- **Verified live**, Docker/Postgres up: seeded via the real signup flow
+  (not fixtures) — `POST /api/signup` with a fresh subdomain → `201`, the
+  exact tenant then rendered correctly on `apps/storefront` via
+  `curl -H "Host: <subdomain>.localhost"` (real business name in `<title>`,
+  not demo fallback) — the literal FE-12-routing half of this task's DoD.
+  Checked `/api/signup/check-subdomain` live for available/taken/reserved/
+  invalid; confirmed a second signup attempt at the same subdomain 409s via
+  the BFF route; confirmed a malformed payload 422s. Also re-ran the
+  originally-planned `apps/mother`/`admin`/`storefront` `pnpm lint && pnpm
+  typecheck && pnpm build` (forced, no cache) — 23/23 tasks clean across the
+  whole workspace, confirming the shared `packages/api-client` change didn't
+  break `admin` or `storefront`. All seeded/created tenants deleted and every
+  dev server (backend + all three Next.js apps) stopped afterward; Docker
+  Postgres/Redis left running as persistent local dev infra.
 
 ---
 

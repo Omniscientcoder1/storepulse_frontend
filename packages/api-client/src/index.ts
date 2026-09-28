@@ -1,5 +1,6 @@
 import { ApiClient, type ApiClientConfig } from "./client";
 import { login, logout, me } from "./resources/auth";
+import { checkSubdomain, subscribe } from "./resources/billing";
 import { getCustomer, listCustomers } from "./resources/customers";
 import { getDashboardSummary } from "./resources/dashboard";
 import { getHealth } from "./resources/health";
@@ -19,6 +20,7 @@ import {
   getStorefrontInfo,
   listPublicProducts,
 } from "./resources/storefront";
+import type { SubscribeRequest } from "./types/billing";
 import type { OrderCreate, OrderStatus, OrderUpdate, StorefrontOrderCreate } from "./types/order";
 import type { ManualPaymentRequest } from "./types/payment";
 import type { ProductCreate, ProductUpdate } from "./types/product";
@@ -28,6 +30,13 @@ export { ApiClient } from "./client";
 export type { ApiClientConfig, RequestOptions } from "./client";
 export { ApiError } from "./errors";
 export type { AdminUserRead, LoginRequest, MeResponse, TokenResponse } from "./types/auth";
+export type {
+  PlanTier,
+  SubdomainCheckResponse,
+  SubscribeRequest,
+  SubscribeResponse,
+  SubscriptionRead,
+} from "./types/billing";
 export type { CustomerDetail, CustomerOrderSummary, CustomerRead } from "./types/customer";
 export type { DashboardSummary, LowStockProduct } from "./types/dashboard";
 export type { HealthResponse } from "./types/health";
@@ -86,6 +95,11 @@ export class StorePulseApiClient {
     login: (body: { email: string; password: string }) => login(this.client, body),
     logout: () => logout(this.client),
     me: () => me(this.client),
+  };
+
+  readonly billing = {
+    subscribe: (body: SubscribeRequest) => subscribe(this.client, body),
+    checkSubdomain: (value: string) => checkSubdomain(this.client, value),
   };
 
   readonly dashboard = {
