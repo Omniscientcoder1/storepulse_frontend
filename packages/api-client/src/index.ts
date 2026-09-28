@@ -1,5 +1,5 @@
 import { ApiClient, type ApiClientConfig } from "./client";
-import { login, logout, me } from "./resources/auth";
+import { login, logout, me, refresh } from "./resources/auth";
 import { checkSubdomain, subscribe } from "./resources/billing";
 import { getCustomer, listCustomers } from "./resources/customers";
 import { getDashboardSummary } from "./resources/dashboard";
@@ -29,7 +29,14 @@ import type { TenantSettingsUpdate } from "./types/settings";
 export { ApiClient } from "./client";
 export type { ApiClientConfig, RequestOptions } from "./client";
 export { ApiError } from "./errors";
-export type { AdminUserRead, LoginRequest, MeResponse, TokenResponse } from "./types/auth";
+export type {
+  AdminUserRead,
+  LoginRequest,
+  LogoutRequest,
+  MeResponse,
+  RefreshRequest,
+  TokenResponse,
+} from "./types/auth";
 export type {
   PlanTier,
   SubdomainCheckResponse,
@@ -93,7 +100,8 @@ export class StorePulseApiClient {
 
   readonly auth = {
     login: (body: { email: string; password: string }) => login(this.client, body),
-    logout: () => logout(this.client),
+    refresh: (body: { refresh_token: string }) => refresh(this.client, body),
+    logout: (body: { refresh_token: string }) => logout(this.client, body),
     me: () => me(this.client),
   };
 

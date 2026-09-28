@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { ApiError, StorePulseApiClient } from "@storepulse/api-client";
 
-import { SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/session";
+import { REFRESH_COOKIE_NAME, SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/session";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -18,6 +18,11 @@ const loginSchema = z.object({
 // token it holds (a stale-but-present cookie would otherwise look "logged
 // in" client-side while every request 401s).
 const SESSION_MAX_AGE_SECONDS = 60 * 60;
+
+// Matches the backend's REFRESH_TOKEN_EXPIRE_DAYS default (BE-36). Kept in
+// lockstep the same way SESSION_MAX_AGE_SECONDS is kept in lockstep with the
+// access token's lifetime — if the backend's expiry changes, update this too.
+const REFRESH_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 /**
  * BFF login endpoint: the browser never talks to the FastAPI backend
@@ -38,12 +43,11 @@ export async function POST(request: Request) {
   const client = new StorePulseApiClient({ baseUrl: API_URL });
 
   try {
-    const { access_token: accessToken } = await client.auth.login(parsed.data);
-    (await cookies()).set(
-      SESSION_COOKIE_NAME,
-      accessToken,
-      sessionCookieOptions(SESSION_MAX_AGE_SECONDS),
-    );
+    const { access_token: accessToken, refresh_token: refreshToken } =
+      await client.auth.login(parsed.data);
+    const cookieStore = await cookies();
+    cookieStore.set(SESSION_COOKIE_NAME, accessToken, sessionCookieOptions(SESSION_MAX_AGE_SECONDS));
+    cookieStore.set(REFRESH_COOKIE_NAME, refreshToken, sessionCookieOptions(REFRESH_MAX_AGE_SECONDS));
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
