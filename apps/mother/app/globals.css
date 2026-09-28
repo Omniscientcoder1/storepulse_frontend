@@ -8,3 +8,33 @@
  * usage has to be added to the scan explicitly.
  */
 @source "../../../packages/ui/src/**/*.{ts,tsx}";
+
+/*
+ * Mother-site-only design layer (FE-14): additive marketing tokens on top of
+ * @storepulse/config's shared --color-brand-* scale. These never replace the
+ * shared brand tokens (bg-primary/text-primary still resolve to brand-600
+ * via packages/ui/src/globals.css) — they only add the extra accent + ink
+ * colors this app's bolder editorial sections need that admin has no use
+ * for. Keep new tokens here, not in packages/config/theme.css.
+ */
+@theme {
+  --font-display: var(--font-display-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-body-sans), ui-sans-serif, system-ui, sans-serif;
+
+  /* Warm accent used only for "chat/DM" storytelling moments (hero, stat band) */
+  --color-accent-50: #fff7ed;
+  --color-accent-400: #fb923c;
+  --color-accent-500: #f97316;
+  --color-accent-600: #ea580c;
+
+  /* Deep ink for full-bleed dark bands (hero, final CTA) — not pure black */
+  --color-ink-900: #0b1120;
+  --color-ink-800: #131b2e;
+  --color-ink-700: #1c2740;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+}

@@ -12,9 +12,11 @@
   "dependencies": {
     "@storepulse/api-client": "workspace:*",
     "@storepulse/ui": "workspace:*",
+    "framer-motion": "^12.4.0",
     "next": "16.3.5",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@storepulse/config": "workspace:*",

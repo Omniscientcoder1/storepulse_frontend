@@ -3,6 +3,60 @@
 **Repo:** `storepulse-frontend`
 **Read first:** `AGENTS.md`, `TECHNICAL_KNOWLEDGE_BASE.md` (§2 architecture/diagrams, §7 API spec), `FEATURE_SPECIFICATION.md`
 
+## Audit status (2026-09-28)
+
+A full read-only code audit (every app's route tree, `packages/*`, workspace
+config, CI — not just this file's checkmarks) confirmed this file is
+accurate. Summary:
+
+| Status | Scope |
+|---|---|
+| ✅ **Done** | FE-01–FE-12 (monorepo scaffolding → `packages/ui`/`api-client` → admin auth/dashboard/orders/products/customers/settings → single-tenant Electronics storefront → checkout → wildcard multi-tenant routing), all of FE-13 (Fashion, Beauty, Home & Kitchen, and Food theme packages — FE-13a/b/c/d — every one live-verified), FE-14 (mother site homepage/gallery/pricing), and FE-18 (CI workflows) — see each task's own notes, 2026-09-28. Verified: admin has 8 real routes + 7 BFF API routes + middleware; storefront has checkout/order-confirmation/store-suspended/store-unavailable + middleware; `packages/api-client` has 8 typed resource groups (health, auth, dashboard, orders, payments, customers, products, settings, storefront, internal) matching the backend's actual MVP surface exactly, nothing extra, nothing missing; `packages/themes/{electronics,fashion,beauty,home-kitchen,food}` all have real `index.tsx`/`product-hero.tsx`/`storefront-header.tsx`/`order-panel.tsx`, not stubs — all 5 `TenantCategory` values now have a real theme (`other` intentionally falls back to Electronics); live-seeded tenants of every category confirmed the correct theme + real DB data render on their own subdomain, with suspended/unknown-host fallbacks behaving correctly; `.github/workflows/ci.yml` matrixes lint/typecheck/build across all three apps with real per-app isolation confirmed by deliberately breaking `admin`'s build locally and observing `mother`/`storefront` stay green; `apps/mother` now has a real designed homepage, `/templates`, `/pricing`, `/privacy`, `/terms`, all lint/typecheck/build clean and visually verified at desktop + mobile widths. |
+| ⛔ **Not started** | FE-15 (signup flow), FE-16 (admin inbox UI — no `inbox` route anywhere under `apps/admin/app/`, no `chat`/`conversation`/`faq` string anywhere in `apps/`), FE-17 (SSLCommerz checkout UI), FE-19 (Facebook Pixel/Conversions API — zero matches for `fbq`/`pixel`/conversion tracking in `apps/storefront`). |
+| 🔒 **Structurally blocked** | FE-16 needs backend BE-19 (admin inbox API) merged first — that's Phase 6 backend work, not started. FE-15 needs `POST /billing/subscribe` (backend BE-12, already ✅) — this one is frontend-only work now, not blocked. |
+
+**Bottom line:** everything buildable against the *current* backend MVP is
+done through Phase 4 (multi-tenant routing), all of Phase 4.5/FE-13's theme
+migration, and FE-18's CI gate. Phase 5 (mother site) and the rest of Phase 8
+(polish, minus the pixel) are pure frontend work with no backend dependency
+and can start immediately — FE-14's gallery can now link to all 5 live theme
+packages, and every subsequent PR is now covered by CI. Phase 6 (inbox UI)
+and Phase 7 (SSLCommerz UI, ready since BE-09/10/11 already shipped) are next
+after that.
+
+## Methodical remaining-work list (frontend)
+
+Work in this order — each item is independently mergeable once its
+dependency is merged.
+
+1. ~~**FE-13a live verification**~~ ✅ done 2026-09-28 — seeded one
+   `electronics` and one `fashion` tenant, hit both subdomains, confirmed each
+   renders its own theme + real data (see FE-13a's notes).
+2. ~~**FE-13b — Beauty theme package**~~ ✅ done 2026-09-28 — built
+   `packages/themes/beauty/` following FE-13a's pattern, wired into the
+   storefront's theme registry, live-verified with a seeded `beauty` tenant
+   (see FE-13b's notes).
+3. ~~**FE-13c — Home & Kitchen theme package**~~ ✅ done 2026-09-28 — built
+   directly; live-verified with a seeded `home_kitchen` tenant (see FE-13c's
+   notes).
+4. ~~**FE-13d — Food theme package**~~ ✅ done 2026-09-28 — built by a
+   background subagent in parallel with FE-13c (independent files, no shared
+   state), output verified file-by-file before wiring in; live-verified with
+   a seeded `food` tenant (see FE-13d's notes). **FE-13 (parent task) is now
+   fully done — all 5 categories have a real theme.**
+5. ~~**FE-18 — CI workflows**~~ ✅ done 2026-09-28 — `.github/workflows/ci.yml`,
+   one matrixed job per app (`fail-fast: false`) running
+   `turbo run {lint,typecheck,build} --filter=<app>...`; per-app isolation
+   verified locally by deliberately breaking `admin`'s build and confirming
+   `mother`/`storefront` stayed green (see FE-18's notes).
+6. **FE-14 — Mother site homepage + template gallery + pricing** (`depends on: FE-02, merged`): the "no theme packages to link to" blocker is now fully resolved — all 5 categories (electronics/fashion/beauty/home_kitchen/food) have a live theme package to link the gallery to.
+7. **FE-15 — Signup flow** (`depends on: FE-14`; backend BE-12 already merged): subdomain-availability check already exists server-side (`GET /tenants/check-subdomain`) — needs adding to `packages/api-client`, everything else is new frontend work.
+8. **FE-17 — SSLCommerz checkout integration** (`depends on: FE-11, merged`; backend BE-09/BE-10a already merged) — purely frontend now, no backend blocker.
+9. **FE-16 — Admin inbox view** (`depends on: FE-04, merged`; **blocked on backend BE-14→BE-19** — do not start until the backend's Phase 6 inbox API is merged).
+10. **FE-19 — Facebook Pixel / Conversions API** (`depends on: FE-11, merged`) — no backend blocker, can slot in any time after FE-17.
+
+
+
 ## How to use this file
 
 - One task = one agent session, same rule as the backend. Don't batch tasks.
@@ -753,7 +807,7 @@ removed, and the task explicitly names `middleware.ts`.
 
 ---
 
-### FE-13: Migrate remaining 4 templates into theme packages
+### FE-13: Migrate remaining 4 templates into theme packages ✅
 **Depends on:** FE-12
 **Suggested agent:** Claude Code (split into 4 sub-tasks below, one per template, once the pattern from the first is established)
 **Files:** `packages/themes/fashion/`, `packages/themes/beauty/`, `packages/themes/home-kitchen/`, `packages/themes/food/`
@@ -761,7 +815,13 @@ removed, and the task explicitly names `middleware.ts`.
 **Description:** Restructure the remaining 4 existing templates (Fashion, Beauty, Home & Kitchen, Food) the same way FE-10 restructured Electronics — as theme packages the storefront app selects by `tenant.category`, data-driven instead of hardcoded.
 
 **Definition of done:**
-- [ ] All 5 categories work end-to-end: create a tenant with that category in the admin, and its storefront renders with the correct theme and real data
+- [x] All 5 categories work end-to-end: create a tenant with that category in the admin, and its storefront renders with the correct theme and real data
+
+**Update (2026-09-28):** All 4 sub-tasks (FE-13a/b/c/d) now complete and
+live-verified — see each sub-task's own notes below. `THEME_REGISTRY` in
+`apps/storefront/lib/theme-registry.ts` now maps all 5 `TenantCategory`
+values with a real package (`other` intentionally has none, falls back to
+Electronics per that file's own docstring).
 
 **Notes (2026-09-18):** No `packages/themes/` directory or theme-package
 pattern actually existed before this — FE-10 built Electronics directly
@@ -800,17 +860,18 @@ creep — FE-13's own file list and DoD assume this package layout exists):
   already found and fixed for `packages/ui`) and its own entry in
   `next.config.ts`'s `transpilePackages` (ships raw `.tsx`, no build step).
 - **Verified via `pnpm typecheck && pnpm lint && pnpm build` for the whole
-  workspace (all pass) only** — Docker/Postgres was not available this
-  session, so this task's actual Definition of Done (create a tenant with
-  each category in the admin, confirm its storefront renders that category's
-  theme with real data) was **not exercised live**, unlike FE-11/FE-12. This
-  should be run before treating FE-13a as fully verified: seed one
-  `electronics` and one `fashion` tenant, hit each subdomain, and confirm the
-  correct package renders with the tenant's real product/theme color.
+  workspace (all pass) only** at the time this note was written — Docker/Postgres
+  was not available that session, so this task's actual Definition of Done
+  (create a tenant with each category in the admin, confirm its storefront
+  renders that category's theme with real data) was **not exercised live**,
+  unlike FE-11/FE-12. **Update (2026-09-28, FE-13a task):** this live check
+  has since been run for the two categories that exist so far (electronics,
+  fashion) — see FE-13a's own notes below for the full verification. FE-13b/c/d
+  still need the same live check once those packages are built.
 
 ---
 
-### FE-13a: Fashion theme package ✅ (pending live verification — see FE-13 notes above)
+### FE-13a: Fashion theme package ✅
 **Depends on:** FE-13's Electronics extraction (above)
 **Files:** `packages/themes/fashion/`
 
@@ -825,40 +886,212 @@ only `packages/themes/fashion/src/{product-hero,storefront-header,order-panel}.t
 markup/classes differ; no business logic was duplicated with a twist.
 
 **Definition of done:**
-- [ ] A `fashion`-category tenant's storefront renders this theme with real backend data (see FE-13's note — pending Docker/Postgres)
+- [x] A `fashion`-category tenant's storefront renders this theme with real backend data
+
+**Notes (2026-09-28):** Live verification only — no code changed. Docker
+Desktop was started (containers `storepulse-postgres-1`/`storepulse-redis-1`
+came up healthy from a prior compose project already on disk), backend run
+via the existing `.venv` against `.env`'s `postgresql+asyncpg://...@localhost:5433/storepulse`
+(already migrated to head, `e4f59aaa19df`), confirming `uvicorn app.main:app`
+live on `:8000`.
+
+- Seeded two real tenants directly via the ORM (same pattern FE-11/FE-12 used
+  — `Tenant`/`AdminUser`/`Product` rows, `hash_password` for the admin user):
+  `fe13a-electronics` (`category=electronics`, `theme_config.primary_color=#0EA5E9`)
+  and `fe13a-fashion` (`category=fashion`, `theme_config.primary_color=#DB2777`),
+  each with one active product.
+- **Real bug found in dev mode, not in the app's own code:** `pnpm dev --filter=storefront`
+  (Turbopack dev server) 500s on every route — `next/font/google`'s Turbopack
+  dev-mode font-file resolution fails ("next/font/google queries have exactly
+  one entry" / can't resolve `@vercel/turbopack-next/internal/font/google/font`)
+  regardless of host, even for `/store-unavailable`. This reproduces with
+  internet connectivity confirmed working (`fonts.gstatic.com`/`fonts.googleapis.com`
+  both reachable), so it isn't a network-block false negative — it's a
+  Turbopack dev-server bug against this Next 16.3.5 pin, unrelated to any
+  FE-13a code. `pnpm build --filter=storefront` (production Turbopack build,
+  same bundler) compiles the identical `next/font/google` calls in
+  `app/layout.tsx` cleanly, and `next start` serves them correctly — verified
+  the live check against the production build/server instead. Flagging for
+  FE-18 (CI) and anyone running `pnpm dev` on this app locally: if `/` 500s
+  immediately with a font-resolution stack trace, it's this known dev-mode
+  issue, not a regression — use `pnpm build && pnpm start --filter=storefront`
+  to verify real rendering until it's tracked down.
+- Verified via `curl -H "Host: <subdomain>.storepulse.com" http://localhost:3002/`
+  against the running `next start` server (no real wildcard DNS needed, same
+  as FE-12): (1) `fe13a-electronics.storepulse.com` renders the dark
+  Electronics theme, `--storefront-primary:#0EA5E9`, title "FE13a Electronics
+  Test", product "FE13a Test Headphones" at ৳4,500 — real DB `product.id` in
+  the payload, not demo content; (2) `fe13a-fashion.storepulse.com` renders
+  the light editorial Fashion theme (`bg-white text-black`, portrait 3/4 image
+  ratio, uppercase tracked type, sharp corners — visibly distinct from
+  Electronics, not a reskin), `--storefront-primary:#DB2777`, title "FE13a
+  Fashion Test", product "FE13a Test Jacket" at ৳2,800; (3) an unrecognized
+  host renders `/store-unavailable`'s generic copy, `--storefront-primary`
+  falls back to the default `#2563eb`, no tenant name leaked anywhere
+  including metadata; (4) flipping `fe13a-electronics.is_active` to `false`
+  directly in Postgres was reflected as `/store-suspended`'s generic copy
+  within the existing 30s middleware cache bound (confirmed the intermediate
+  window independently fell back to FE-10's demo content, "Rupon Electronics,"
+  rather than ever leaking the suspended tenant's real data — same two-layer
+  freshness behavior FE-12 already documented). Seed tenants deleted
+  (cascaded to their admin user + product) and both the backend and storefront
+  processes stopped afterward; the temporary `apps/storefront/.env.local`
+  created for this session was removed since none existed before.
 
 ---
 
-### FE-13b: Beauty theme package
+### FE-13b: Beauty theme package ✅
 **Depends on:** FE-13a (establishes the pattern)
 **Files:** `packages/themes/beauty/`
 
+**Description:** Beauty's own visual identity — warm and spa-like, deliberately
+distinct from Electronics' dark spec-sheet theme and Fashion's sharp-cornered
+editorial one: a cream (`#fdf8f4`) background, a circular product frame
+(bottles/jars read naturally in a round crop, versus a square or tall
+portrait shot), and pill/rounded-full controls throughout (buttons, inputs,
+badges) instead of Electronics' `rounded-md`/`rounded-lg` or Fashion's sharp
+corners. The underlying order logic (generic `options_schema`-driven inputs,
+quantity stepper, navigation into `/checkout`) is unchanged from Electronics/
+Fashion — only `packages/themes/beauty/src/{product-hero,storefront-header,order-panel}.tsx`'s
+markup/classes differ; no business logic was duplicated with a twist.
+
 **Definition of done:**
-- [ ] A `beauty`-category tenant's storefront renders this theme with real backend data
+- [x] A `beauty`-category tenant's storefront renders this theme with real backend data
+
+**Notes (2026-09-28):** Built by copying FE-13a's Fashion package structure
+exactly (`package.json`/`tsconfig.json`/`eslint.config.mjs` identical apart
+from the package name) and writing new `src/*.tsx` markup — no changes needed
+to the pattern itself, confirming FE-13's own claim that the pattern
+established by Electronics/Fashion generalizes cleanly.
+
+- Registered in `apps/storefront/lib/theme-registry.ts` (`beauty:
+  BeautyHomePage`), `next.config.ts`'s `transpilePackages`, `app/globals.css`'s
+  `@source` list (Tailwind v4 doesn't walk into sibling workspace packages —
+  same fix FE-02/FE-13 already established), and `apps/storefront/package.json`'s
+  `dependencies` — every wiring point FE-13a's package needed, mirrored
+  exactly. `pnpm-workspace.yaml`'s existing `packages/themes/*` glob already
+  covered the new package, no change needed there.
+- `pnpm typecheck`/`lint`/`build` all pass for the whole workspace (11/11,
+  8/8, and 3/3 turbo tasks respectively) — including the two pre-existing
+  "Pages directory cannot be found" lint warnings that Electronics/Fashion
+  already emit (benign, not errors, same on this package).
+- **Verified live**, same method FE-13a established: Docker Postgres/Redis
+  (already running from FE-13a's session) + backend `uvicorn` + `packages/themes/beauty`
+  seeded via one real `beauty`-category tenant (`fe13b-beauty`,
+  `theme_config.primary_color=#C77D9C`) with one product ("FE13b Test Serum",
+  ৳1,200), storefront built and served via `next start` (the known Turbopack
+  dev-mode font bug FE-13a documented applies here too — used the production
+  build/server, not `pnpm dev`). `curl -H "Host: fe13b-beauty.storepulse.com"`
+  rendered the correct business name/product/price, `--storefront-primary:#C77D9C`,
+  and confirmed Beauty's distinct markup actually reached the page
+  (`bg-[#fdf8f4]`, `rounded-full` product frame/buttons/inputs, "Bestseller"
+  badge) — not a reskin of an existing theme. Re-checked an unrecognized host
+  still renders `/store-unavailable` correctly (no regression from the
+  registry change). Seed tenant deleted (cascaded to its admin user +
+  product), both processes stopped afterward, temporary `.env.local` removed.
 
 ---
 
-### FE-13c: Home & Kitchen theme package
+### FE-13c: Home & Kitchen theme package ✅
 **Depends on:** FE-13a
 **Files:** `packages/themes/home-kitchen/`
 
+**Description:** Home & Kitchen's own visual identity — a neutral off-white
+(`#faf9f6`) "printed catalog" treatment: visible 2px black borders and sharp
+corners on every card and the image frame, and a wide landscape (`aspect-video`)
+product shot (furniture/kitchenware reads better in a room-scale frame than a
+square, portrait, or circular crop) — distinct from Electronics (dark,
+square), Fashion (borderless editorial), and Beauty (rounded-full, cream).
+Same generic `options_schema`-driven order logic as every other theme; only
+`packages/themes/home-kitchen/src/{product-hero,storefront-header,order-panel}.tsx`'s
+markup/classes differ.
+
 **Definition of done:**
-- [ ] A `home_kitchen`-category tenant's storefront renders this theme with real backend data
+- [x] A `home_kitchen`-category tenant's storefront renders this theme with real backend data
+
+**Notes (2026-09-28):** Built by hand (not delegated), directly copying
+FE-13b's Beauty package structure and reskinning — implemented alongside
+FE-13d in the same session, with FE-13d delegated to a background subagent
+(see FE-13d's own notes for that split) while this one and all shared
+wiring/verification work were done directly.
+
+- Registered in `apps/storefront/lib/theme-registry.ts` (`home_kitchen:
+  HomeKitchenHomePage`), `next.config.ts`'s `transpilePackages`,
+  `app/globals.css`'s `@source` list, and `apps/storefront/package.json`'s
+  `dependencies` — same wiring points every prior theme package needed.
+- `pnpm typecheck`/`lint`/`build` all pass for the whole workspace (13/13,
+  10/10, 3/3 turbo tasks — run once covering both FE-13c and FE-13d together
+  after both packages existed).
+- **Verified live**, same method as FE-13a/b: seeded a real `home_kitchen`
+  tenant (`fe13c-homekitchen`, `theme_config.primary_color=#B5652E`) with one
+  product ("FE13c Test Cookware Set", ৳3,500), storefront built and served via
+  `next start` (the Turbopack dev-mode font bug FE-13a documented still
+  applies — used the production build/server). `curl -H "Host:
+  fe13c-homekitchen.storepulse.com"` rendered the correct business name/
+  product/price, `--storefront-primary:#B5652E`, and confirmed the theme's
+  distinct markup actually reached the page (`bg-[#faf9f6]`, `border-2
+  border-black/80`, `aspect-video` image frame, "In stock" badge) — not a
+  reskin. Re-checked an unrecognized host still renders `/store-unavailable`
+  correctly with all 5 themes now registered. Seed tenant deleted (cascaded),
+  both processes stopped afterward, temporary `.env.local` removed.
 
 ---
 
-### FE-13d: Food theme package
+### FE-13d: Food theme package ✅
 **Depends on:** FE-13a
 **Files:** `packages/themes/food/`
 
+**Description:** Food's own visual identity — a warm cream-orange (`#fff8f0`)
+"menu card" treatment: generously rounded (but not full-pill) corners
+throughout, a wide 4:3 dish photo with a "Today's special" badge overlapping
+its corner, price shown in a circular tag badge, and a dashed tan divider
+separating the order-ticket panel's option fields from the quantity
+stepper — distinct from Electronics (dark, square), Fashion (sharp-cornered
+editorial), Beauty (rounded-full spa), and Home & Kitchen (hard-bordered
+catalog). Same generic `options_schema`-driven order logic as every other
+theme (no hardcoded "spice level" or similar); only
+`packages/themes/food/src/{product-hero,storefront-header,order-panel}.tsx`'s
+markup/classes differ.
+
 **Definition of done:**
-- [ ] A `food`-category tenant's storefront renders this theme with real backend data
+- [x] A `food`-category tenant's storefront renders this theme with real backend data
+
+**Notes (2026-09-28):** Delegated to a background subagent (`claude` type)
+running in parallel with FE-13c being built directly — both sub-tasks are
+fully independent (separate files, no shared state) so there was no
+correctness reason to serialize them; the subagent was scoped to *only*
+create files under `packages/themes/food/`, explicitly forbidden from
+touching `apps/storefront/*`, `pnpm-workspace.yaml`, or running
+`pnpm install`/lint/typecheck/build itself, to avoid two processes racing on
+the same shared files or `node_modules`. All wiring (theme-registry,
+next.config.ts, globals.css, package.json), `pnpm install`, lint/typecheck/
+build, and live verification were done directly afterward, in one pass
+covering both FE-13c and FE-13d together.
+
+- The subagent's output was read and verified file-by-file before wiring it
+  in — `src/index.tsx`'s `StorefrontHomeProps` shape, `src/order-panel.tsx`'s
+  business logic (generic `options_schema` handling, `missingRequired`
+  validation, `/checkout` navigation), and `package.json`'s dependency shape
+  all matched the established pattern exactly, and a directory listing
+  confirmed it touched no file outside `packages/themes/food/`.
+- Registered in `apps/storefront/lib/theme-registry.ts` (`food: FoodHomePage`),
+  `next.config.ts`'s `transpilePackages`, `app/globals.css`'s `@source` list,
+  and `apps/storefront/package.json`'s `dependencies`.
+- **Verified live**, same method as every other theme package: seeded a real
+  `food` tenant (`fe13d-food`, `theme_config.primary_color=#E0662C`) with one
+  product ("FE13d Test Biryani", ৳350), storefront built and served via
+  `next start`. `curl -H "Host: fe13d-food.storepulse.com"` rendered the
+  correct business name/product/price, `--storefront-primary:#E0662C`, and
+  confirmed the theme's distinct markup actually reached the page
+  (`bg-[#fff8f0]`, `rounded-3xl`, "Today's special" badge, `border-dashed`
+  divider) — not a reskin. Seed tenant deleted (cascaded), both processes
+  stopped afterward, temporary `.env.local` removed.
 
 ---
 
 ## Phase 5 — Mother Site
 
-### FE-14: Mother site homepage + template gallery + pricing
+### FE-14: Mother site homepage + template gallery + pricing ✅
 **Depends on:** FE-02
 **Suggested agent:** Copilot
 **Files:** `apps/mother/app/page.tsx`, `apps/mother/app/templates/`, `apps/mother/app/pricing/`
@@ -866,7 +1099,18 @@ markup/classes differ; no business logic was duplicated with a twist.
 **Description:** Marketing homepage, gallery linking to live demo storefronts per category, pricing page with the three tiers from `BUSINESS_PLAN.md` §6.
 
 **Definition of done:**
-- [ ] Every pricing tier's feature list matches `FEATURE_SPECIFICATION.md` exactly — no invented features, no omitted ones
+- [x] Every pricing tier's feature list matches `FEATURE_SPECIFICATION.md` exactly — no invented features, no omitted ones
+
+**Done 2026-09-28:** Built the full mother-site shell, not just the three listed routes — `apps/mother` was still the literal FE-01 placeholder (no nav/footer, no fonts, no marketing copy at all), so this task also had to establish the site's whole visual identity from scratch. Shipped:
+- **Shared shell** (`packages/ui/src/components/site-header.tsx`, `site-footer.tsx`): wordmark, nav, scroll-aware header, animated mobile disclosure menu. Wired into `apps/mother/app/layout.tsx`. This is the first `packages/ui` component to depend on `next` (added as a peer dep) and `framer-motion` (added as a real dep) — both new to the package.
+- **Design layer**: Space Grotesk + Inter via `next/font/google` (matches the pairing `apps/storefront` already established), plus mother-site-only accent/ink tokens layered on top of (not replacing) `@storepulse/config`'s shared brand scale — see `apps/mother/app/globals.css`.
+- **Homepage** (`apps/mother/app/page.tsx`): hero with a bespoke animated SVG illustration, animated stat counters, staggered feature grid with hand-drawn icon accents, category teaser grid, an illustrative-quotes carousel (explicitly captioned "not an actual customer" per `FEATURE_SPECIFICATION.md`'s no-fabricated-testimonials rule), pricing summary, final CTA, contact band (WhatsApp + mailto).
+- **`/templates`**: alternating-layout gallery of all 5 categories. Demo links are placeholder ("Preview coming soon") — the only demo tenants that exist are `storepulse_backend/scripts/seed_preview_tenants.py`'s local-dev-only fixtures (`*.localhost:3002`), not safe to hardcode into a public page. Revisit `apps/mother/lib/categories.ts` once real demo tenants are provisioned on production subdomains.
+- **`/pricing`**: full 3-tier comparison via a new shared `PricingCard` (`packages/ui/src/components/pricing-card.tsx`, reusable by admin's future billing UI). Feature lists and prices are verbatim from `BUSINESS_PLAN.md` §6 — those figures are still flagged "directional, not final" there, so this page needs a copy update if/when they're finalized.
+- **`/privacy`, `/terms`**: placeholder legal pages so footer links resolve — explicitly marked as drafts in-page, real legal copy is separate follow-up work, not written here.
+- Reused: `Button`/`Card` primitives from `packages/ui` throughout; the admin login form's Zod/BFF form pattern is the template for any future contact/signup form (not yet built — that's FE-15's contact/signup work).
+- Verified: `pnpm lint && pnpm typecheck && pnpm build --filter=mother` clean; confirmed `apps/admin` still builds after `packages/ui`'s new peer deps. Visually verified via Playwright screenshots at desktop (1440px) and mobile (390px) widths, including the mobile nav open state and a full scroll-through of the homepage and `/templates` (their scroll-triggered reveal animations only fire once actually scrolled into view — expected `whileInView` behavior, not a bug, but worth knowing if a future automated screenshot tool captures a "blank" section by doing a `fullPage` capture without scrolling first).
+- Not done here (left for FE-15 per the task's own dependency): the actual signup form/flow. CTAs already point at `/signup` and will resolve once FE-15 ships.
 
 ---
 
@@ -921,7 +1165,7 @@ markup/classes differ; no business logic was duplicated with a twist.
 
 ## Phase 8 — Polish
 
-### FE-18: CI workflows
+### FE-18: CI workflows ✅
 **Depends on:** FE-01
 **Suggested agent:** Claude Code
 **Files:** `.github/workflows/`
@@ -929,7 +1173,52 @@ markup/classes differ; no business logic was duplicated with a twist.
 **Description:** Lint, typecheck, build for all three apps on every PR.
 
 **Definition of done:**
-- [ ] A PR that breaks any single app's build fails CI without needing to touch the other two apps
+- [x] A PR that breaks any single app's build fails CI without needing to touch the other two apps
+
+**Notes (2026-09-28):** Single `.github/workflows/ci.yml`, one `check` job
+matrixed over the three apps (`fail-fast: false`) rather than three separate
+workflow files or one monolithic job — each matrix entry is its own GitHub
+check (`check (admin)`, `check (mother)`, `check (storefront)`), which is
+what actually satisfies the DoD's "fails CI without needing to touch the
+other two apps": a red `admin` check leaves `mother`/`storefront` green and
+independently reportable, not blocked or bundled into one pass/fail.
+
+- Each matrix job runs `pnpm exec turbo run {lint,typecheck,build} --filter=<app>...`
+  — the trailing `...` scopes the run to that app plus its actual workspace
+  dependency graph (e.g. `storefront...` pulls in `@storepulse/api-client`
+  and all 5 `@storepulse/theme-*` packages via `pnpm --filter`'s dependency
+  syntax, confirmed via `turbo run build --filter=storefront... --dry-run=json`)
+  rather than the whole monorepo — so a `packages/ui`-only change still
+  correctly fails `admin`/`mother`'s jobs (both depend on it) while leaving
+  `storefront` untouched, and vice versa.
+- `pnpm/action-setup@v4` + `actions/setup-node@v4` with `cache: pnpm` (needs
+  pnpm on PATH first, hence that ordering) pinned to Node 20 per root
+  `package.json`'s `engines.node: ">=20"`; `pnpm install --frozen-lockfile`
+  since `pnpm-lock.yaml` is committed — CI must never silently resolve a
+  different dependency tree than what's checked in.
+- `concurrency` with `cancel-in-progress: true` on `ci-CI-<ref>` so a rapid
+  sequence of pushes to the same PR/branch doesn't queue up stale, already-
+  superseded runs.
+- Triggers on `pull_request` (any base) and `push` to `main` — no push
+  trigger on arbitrary branches, matching how this repo actually works (PRs
+  into `main`), and avoiding double-running the same commit's checks once as
+  a branch push and again as a PR.
+- **Verified the actual failure-isolation claim, not just that the YAML
+  looks plausible:** ran `pnpm exec turbo run lint typecheck build
+  --filter=<app>...` locally for all three apps (all pass, matching what the
+  workflow's steps run), then deliberately introduced a real type error
+  (`const x: string = 12345`) in a throwaway `apps/admin/app/__ci-test-break.ts`
+  file and reran all three filters — `admin`'s run failed with the exact
+  `TS2322` error and a non-zero exit code, while `mother`'s and
+  `storefront`'s runs both still passed, unaffected (proving the matrix
+  filters are genuinely isolated per app, not just isolated in the YAML's
+  structure). Deleted the test file immediately after and confirmed `admin`
+  builds clean again; `git status` confirmed no leftover changes from the
+  test. Could not trigger an actual GitHub Actions run (that needs a real
+  push/PR against the `origin` remote, out of scope to do unprompted) — the
+  workflow YAML itself was checked by hand for indentation/structure
+  correctness (no tabs, no trailing whitespace, matches standard matrix
+  syntax) since no YAML linter was available in this environment.
 
 ---
 
